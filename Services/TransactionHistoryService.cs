@@ -27,24 +27,29 @@ public class TransactionHistoryService
 
         var data = await _context.Transactions
             .Include(t => t.Category)
-            .Where(t => t.UserId == userId
-                        && t.Date >= startDate
-                        && t.Date < endDate)
+            .Where(t => t.UserId == userId && t.Date >= startDate && t.Date < endDate)
             .OrderByDescending(t => t.Date)
             .ToListAsync();
 
+        // tính tổng in/out
         var summary = new TransactionHistorySummaryDTO
         {
-            TotalIn = data.Where(t => t.Category?.Type?.Equals("income", StringComparison.OrdinalIgnoreCase) == true).Sum(t => t.Amount),
-            TotalOut = data.Where(t => t.Category?.Type?.Equals("expense", StringComparison.OrdinalIgnoreCase) == true).Sum(t => t.Amount),
-            Transactions = data.Select(t => MapToDisplayDTO(t)).ToList()
+            TotalIn = data.Where(t => IsIncome(t)).Sum(t => t.Amount),
+            TotalOut = data.Where(t => !IsIncome(t)).Sum(t => t.Amount),
+            Transactions = data.Select(MapToDisplayDTO).ToList()
         };
+
         return summary;
     }
 
+    // check xem giao dịch là income hay ko
+    private bool IsIncome(Transaction t)
+        => t.Category?.Type?.Equals("income", StringComparison.OrdinalIgnoreCase) == true;
+
     private TransactionDisplayDTO MapToDisplayDTO(Transaction t)
     {
-        bool isIncome = t.Category?.Type?.Equals("income", StringComparison.OrdinalIgnoreCase) == true;
+        bool isIncome = IsIncome(t);
+
         return new TransactionDisplayDTO
         {
             TransactionId = t.TransactionId,
@@ -54,9 +59,7 @@ public class TransactionHistoryService
             AmountText = (isIncome ? "+" : "-") + t.Amount.ToString("N0") + "₫",
             AmountColor = isIncome ? "#2E9B6A" : "#E05252",
             CategoryIcon = t.Category?.Icon ?? "??",
-            IsImageIcon = t.Category?.Icon is string icon && (icon.Contains('.') || icon.Contains('/')),
             Date = t.Date,
-            // Nếu CreatedAt có giá trị thì lấy HH:mm, nếu null thì để chuỗi rỗng hoặc mặc định
             DateText = t.CreatedAt?.ToString("HH:mm") ?? ""
         };
     }
