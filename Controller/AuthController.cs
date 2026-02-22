@@ -1,13 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MoneyFlow.DTOs;
 using MoneyFlow.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using WebApplication1.Data;
-using WebApplication1.Models;
+using MoneyFlow.data;
+using MoneyFlow.Models;
 
 namespace MoneyFlow.Controller;
 
@@ -33,7 +28,7 @@ public class AuthController : ControllerBase
         var user = new User
         {
             Email = dto.Email,
-            PasswordHash = _auth.HashPassword(dto.Password)
+            Password = _auth.HashPassword(dto.Password)
         };
 
         _context.Users.Add(user);
@@ -48,7 +43,7 @@ public class AuthController : ControllerBase
         var user = _context.Users.FirstOrDefault(x => x.Email == dto.Email);
         if (user == null) return Unauthorized();
 
-        if (!_auth.Verify(dto.Password, user.PasswordHash))
+        if (!_auth.Verify(dto.Password, user.Password))
             return Unauthorized();
 
         return Ok("Login success");
